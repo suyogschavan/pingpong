@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import LandingPage from './LandingPage';
-import Game from './Game';
+import React, { useState } from "react";
+import LandingPage from "./Pages/Home";
+
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Home from "./Pages/Home";
+import Lobby from "./Pages/Lobby";
+import Game from "./Pages/Game";
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -10,9 +14,16 @@ function App() {
   };
 
   return (
-    <div className="App">
-      {isPlaying ? <Game /> : <LandingPage startGame={startGame} />}
-    </div>
+    // <div className="App">
+    //   {isPlaying ? <Game /> : <LandingPage startGame={startGame} />}
+    // </div>
+    <Router>
+      <Routes>
+        <Route path="/" exact Component={Home} />
+        <Route path="/lobby" Component={Lobby} />
+        <Route path="/game/:gameId" Component={Game} />
+      </Routes>
+    </Router>
   );
 }
 

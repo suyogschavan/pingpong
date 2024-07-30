@@ -1,45 +1,70 @@
-const { log } = require('console');
-const express = require('express');
-const http = require('http');
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
+const { v4: uuidv4 } = require("uuid");
 
-const {Server} = require('socket.io');
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-      origin: '*',
-      methods: ['GET', 'POST']
-    }
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
 });
 
-let players = {};
-io.on('connection', (socket)=>{
-    console.log('New client connected: ', socket.id);
-    players[socket.id] = {paddleY: 250, score:0};
-    socket.on('disconnect', ()=>{
-        console.log('Client disconnected: ', socket.id);
-        delete players[socket.id];
-        io.emit('players', players);
-    });
+const games = {};
 
-    socket.on('paddleMove', (paddleY)=>{
-        if(players[socket.id]){
-            players[socket.id].paddleY = paddleY;
-            io.emit('players', players);
+io.on("connection", (socket) => {
+  console.log("New client connected", socket.id);
+
+  socket.on("createGame", (playerName) => {
+    console.log("createGame event received", playerName);
+    const gameId = uuidv4();
+    games[gameId] = {
+      players: [{ id: socket.id, name: playerName, ready: false }],
+    };
+    socket.join(gameId);
+    console.log("Game created with ID:", gameId);
+    socket.emit("gameCreated", { gameId });
+  });
+
+  socket.on("joinGame", ({ gameId, playerName }) => {
+    console.log("joinGame event received", gameId, playerName);
+    if (games[gameId] && games[gameId].players.length < 2) {
+      games[gameId].players.push({
+        id: socket.id,
+        name: playerName,
+        ready: false,
+      });
+      socket.join(gameId);
+      console.log("Player joined game:", gameId, playerName);
+      io.to(gameId).emit("playerJoined", games[gameId]);
+    } else {
+      socket.emit("error", { message: "Game not found or full" });
+    }
+  });
+
+  socket.on("playerReady", ({ gameId }) => {
+    console.log("playerReady event received", gameId);
+    const game = games[gameId];
+    if (game) {
+      const player = game.players.find((p) => p.id === socket.id);
+      if (player) {
+        player.ready = true;
+        console.log("Player ready:", socket.id);
+        if (game.players.every((p) => p.ready)) {
+          console.log("All players ready, starting game:", gameId);
+          io.to(gameId).emit("startGame");
         }
-    })
+      }
+    }
+  });
 
+  socket.on("disconnect", () => {
+    console.log("Client disconnected", socket.id);
+    // Handle player disconnection
+  });
+});
 
-    socket.on('socre', ()=>{
-        if(players[socket.id]){
-            players[socket.id].score+=1;
-            io.emit('players', players);
-        }
-    })
-
-    io.emit('players', players)
-})
-
-
-
-server.listen(3001, ()=>{console.log(`Server is listening on port 3001`);})
+const port = process.env.PORT || 4000;
+server.listen(port, () => console.log(`Server running on port ${port}`));

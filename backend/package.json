@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -10,6 +11,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "socket.io": "^4.7.5"
+    "http": "^0.0.1-security",
+    "nodemon": "^3.1.4",
+    "socket.io": "^4.7.5",
+    "uuid": "^10.0.0"
   }
 }
