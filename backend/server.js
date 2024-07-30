@@ -30,7 +30,11 @@ io.on("connection", (socket) => {
 
   socket.on("joinGame", ({ gameId, playerName }) => {
     console.log("joinGame event received", gameId, playerName);
-    if (games[gameId] && games[gameId].players.length < 2) {
+    if (
+      games[gameId] &&
+      games[gameId].players.length < 2 &&
+      games[gameId].players[0].name != playerName
+    ) {
       games[gameId].players.push({
         id: socket.id,
         name: playerName,
@@ -40,7 +44,7 @@ io.on("connection", (socket) => {
       console.log("Player joined game:", gameId, playerName);
       io.to(gameId).emit("playerJoined", games[gameId]);
     } else {
-      socket.emit("error", { message: "Game not found or full" });
+      socket.emit("error", "Game not found or full");
     }
   });
 
@@ -54,7 +58,7 @@ io.on("connection", (socket) => {
         console.log("Player ready:", socket.id);
         if (game.players.every((p) => p.ready)) {
           console.log("All players ready, starting game:", gameId);
-          io.to(gameId).emit("startGame");
+          io.to(gameId).emit("startGame", gameId);
         }
       }
     }

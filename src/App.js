@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Home from "./Pages/Home";
 import Lobby from "./Pages/Lobby";
 import Game from "./Pages/Game";
+// import Example from "./Pages/Example";
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,6 +21,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" exact Component={Home} />
+        {/* <Route path="/" exact Component={Example} /> */}
         <Route path="/lobby" Component={Lobby} />
         <Route path="/game/:gameId" Component={Game} />
       </Routes>

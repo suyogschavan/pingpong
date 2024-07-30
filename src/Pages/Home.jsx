@@ -9,8 +9,8 @@ const Home = ({ startGame }) => {
 
   const handlePlay = () => {
     if (name.trim()) {
-      localStorage.setItem("playerName", name);
-      history("/lobby");
+      const playerName = name;
+      history("/lobby", { state: playerName });
     } else {
       toast.warning("Please enter your name to play the game");
     }
