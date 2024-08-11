@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import io from "socket.io-client";
 import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
 
-const socket = io("http://192.168.0.110:4000");
+const socket = io("http://localhost:4000");
 
 function Lobby() {
   const [gameId, setGameId] = useState("");
@@ -22,7 +22,7 @@ function Lobby() {
       if (isRandom) {
         console.log("Requesting to play random");
         socket.emit("playRandom", playerName);
-      } else {
+      } else if(!isRandom) {
         console.log("Creating new game for", playerName);
         socket.emit("createGame", playerName);
       }
@@ -107,8 +107,9 @@ function Lobby() {
           </button>
         </form>
         {gameId && <p>Game ID: {gameId}</p>}
-        <ul style={{ marginTop: "20px" }}>
-          {players.map((player) => (
+        <ul style={{ marginTop: "20px" }}> 
+          {
+          players.map((player) => (
             <li key={player.id}>
               {player.name} {player.ready ? "(Ready)" : ""}
             </li>
