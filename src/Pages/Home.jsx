@@ -39,7 +39,7 @@ const Home = () => {
     if (name.trim()) {
       const playerName = name;
       // Navigate to the lobby with a request to create a new game
-      navigate("/lobby", {
+      navigate("/custom-lobby", {
         state: { playerName, newGame: true, playRandom: false },
       });
     } else {
