@@ -7,6 +7,7 @@ import Lobby from "./Pages/Lobby";
 import Game from "./Pages/Game";
 import Join from "./Pages/Join";
 import Create from "./Pages/Create";
+import { CustomLobby } from "./Pages/CustomLobby";
 // import Example from "./Pages/Example";
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         <Route path="/join" Component={Join} />
         <Route path="/create" Component={Create} />
         <Route path="/game/:gameId" Component={Game} />
+        <Route path="/custom-lobby" Component={CustomLobby} />
       </Routes>
     </Router>
   );

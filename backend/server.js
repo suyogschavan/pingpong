@@ -14,16 +14,14 @@ const io = socketIo(server, {
   },
 });
 
-const games = {}; // Stores ongoing games
-let waitingPlayer = null; // Track a player waiting for an opponent
+const games = {}; 
+let waitingPlayer = null; 
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
-  // Handle random matchmaking
   socket.on("playRandom", (playerName) => {
     if (waitingPlayer && waitingPlayer.name != playerName) {
-      // If there is a waiting player, create a game with them
       console.log("Pairing with waiting player:", waitingPlayer.name);
       const gameId = uuidv4();
       games[gameId] = {
@@ -33,27 +31,28 @@ io.on("connection", (socket) => {
         ],
       };
 
-      // Join both players to the game room
       socket.join(gameId);
       io.to(waitingPlayer.id).socketsJoin(gameId);
       console.log(`Game created with ID: ${gameId}`);
 
-      // Notify both players that the game has started
       io.to(gameId).emit("gameCreated", {
         gameId,
         players: games[gameId].players,
       });
 
-      // Reset waiting player
       waitingPlayer = null;
+      console.log("Waiting player array is null");
+      
     } else {
-      // If no waiting player, make this player wait for an opponent
-      waitingPlayer = { id: socket.id, name: playerName };
-      console.log("Waiting for an opponent:", playerName);
+      if (!waitingPlayer || waitingPlayer.id !== socket.id) {
+        waitingPlayer = { id: socket.id, name: playerName };
+        console.log("Waiting for an opponent:", playerName);
+      } else {
+        console.log("Player already waiting:", playerName);
+      }
     }
   });
 
-  // Handle creating a game
   socket.on("createGame", (playerName) => {
     const gameId = uuidv4();
     games[gameId] = {
@@ -61,10 +60,9 @@ io.on("connection", (socket) => {
     };
     socket.join(gameId);
     console.log("Game created with ID:", gameId);
-    socket.emit("gameCreated", { gameId });
+    socket.emit("gameCreated", { gameId, players: games[gameId].players });
   });
 
-  // Handle joining an existing game
   socket.on("joinGame", ({ gameId, playerName }) => {
     if (games[gameId] && games[gameId].players.length < 2) {
       games[gameId].players.push({
@@ -80,7 +78,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle player ready event
   socket.on("playerReady", ({ gameId, playerName }) => {
     const game = games[gameId];
     if (game) {
@@ -96,15 +93,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle player disconnection
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
-    // Remove player from waiting queue if disconnected
     if (waitingPlayer && waitingPlayer.id === socket.id) {
       waitingPlayer = null;
     }
 
-    // Find and remove the player from any game
     for (const gameId in games) {
       const game = games[gameId];
       const playerIndex = game.players.findIndex((p) => p.id === socket.id);
@@ -115,7 +109,7 @@ io.on("connection", (socket) => {
           delete games[gameId]; // Remove game if empty
           console.log("Game deleted:", gameId);
         } else {
-          io.to(gameId).emit("playerLeft", games[gameId]);
+          io.to(gameId).emit("playerLeft", game.players); // Notify remaining players
         }
         break;
       }
@@ -123,10 +117,5 @@ io.on("connection", (socket) => {
   });
 });
 
-app.get("/", (req, res) => {
-  return res.send("HI");
-});
-
-const port = process.env.PORT || 4000;
-const host = "0.0.0.0"; // Bind to all network interfaces
-server.listen(port, host, () => console.log(`Server running on port ${port}`));
+const port = 4000;
+server.listen(port, () => console.log(`Server running on port ${port}`));
