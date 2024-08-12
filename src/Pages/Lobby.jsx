@@ -22,7 +22,7 @@ function Lobby() {
       if (isRandom) {
         console.log("Requesting to play random");
         socket.emit("playRandom", playerName);
-      } else if(!isRandom) {
+      } else {
         console.log("Creating new game for", playerName);
         socket.emit("createGame", playerName);
       }
@@ -108,8 +108,7 @@ function Lobby() {
         </form>
         {gameId && <p>Game ID: {gameId}</p>}
         <ul style={{ marginTop: "20px" }}> 
-          {
-          players.map((player) => (
+        {Array.isArray(players) && players.map((player) => (
             <li key={player.id}>
               {player.name} {player.ready ? "(Ready)" : ""}
             </li>
