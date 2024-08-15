@@ -14,8 +14,8 @@ const io = socketIo(server, {
   },
 });
 
-const games = {}; 
-let waitingPlayer = null; 
+const games = {};
+let waitingPlayer = null;
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
@@ -42,7 +42,7 @@ io.on("connection", (socket) => {
 
       waitingPlayer = null;
       console.log("Waiting player array is null");
-      
+
     } else {
       if (!waitingPlayer || waitingPlayer.id !== socket.id) {
         waitingPlayer = { id: socket.id, name: playerName };
@@ -78,20 +78,39 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("playerReady", ({ gameId, playerName }) => {
-    const game = games[gameId];
-    if (game) {
-      const player = game.players.find((p) => p.id === socket.id);
-      if (player) {
-        player.ready = true;
-        console.log(playerName + "''Player ready:", socket.id);
-        if (game.players.every((p) => p.ready)) {
-          console.log("All players ready, starting game:", gameId);
-          io.to(gameId).emit("startGame", gameId);
-        }
+  // socket.on("playerReady", ({ gameId, playerName }) => {
+  //   const game = games[gameId];
+  //   if (game) {
+  //     const player = game.players.find((p) => p.id === socket.id);
+  //     if (player) {
+  //       player.ready = true;
+  //       console.log(playerName + "''Player ready:", socket.id);
+  //       if (game.players.every((p) => p.ready)) {
+  //         console.log("All players ready, starting game:", gameId);
+  //         io.to(gameId).emit("startGame", gameId);
+  //       }
+  //     }
+  //   }
+  // });
+
+// In your server code
+socket.on("playerReady", ({ gameId }) => {
+  const game = games[gameId];
+  if (game) {
+    const player = game.players.find((p) => p.id === socket.id);
+    if (player) {
+      player.ready = !player.ready; // Toggle the ready state
+      console.log(`${player.name} is ${player.ready ? "ready" : "not ready"}`);
+      io.to(gameId).emit("playerReady", game.players);
+      if (game.players.every((p) => p.ready)) {
+        console.log("All players ready, starting game:", gameId);
+        io.to(gameId).emit("startGame", gameId);
       }
     }
-  });
+  }
+});
+
+  
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
@@ -108,7 +127,10 @@ io.on("connection", (socket) => {
         if (game.players.length === 0) {
           delete games[gameId]; // Remove game if empty
           console.log("Game deleted:", gameId);
+          io.to(gameId).emit("gameDeleted", gameId);
         } else {
+          console.log("Player left ", game.players);
+          
           io.to(gameId).emit("playerLeft", game.players); // Notify remaining players
         }
         break;
