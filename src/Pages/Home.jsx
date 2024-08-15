@@ -24,7 +24,7 @@ const Home = () => {
       const playerName = name;
       const gameId = prompt("Enter Game ID:");
       if (gameId) {
-        navigate("/lobby", {
+        navigate("/custom-lobby", {
           state: { playerName, gameId, newGame: false, playRandom: false },
         });
       } else {
