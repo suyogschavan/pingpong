@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import SlCopyButton from "@shoelace-style/shoelace/dist/react/copy-button";
 import Collapse from "@mui/material/Collapse";
 import { List } from "@mui/material";
+import Countdown from "../components/Countdown";
 
 import { TransitionGroup } from "react-transition-group";
 
@@ -27,6 +28,7 @@ export const CustomLobby = () => {
   const [gameId, setGameId] = useState("");
   const [players, setPlayers] = useState([]);
   const [ready, setReady] = useState(false);
+  const [allReady, setAllReady] = useState(false);
 
   const playerName = location.state.playerName;
   const isNewGame = location.state.newGame;
@@ -62,12 +64,24 @@ export const CustomLobby = () => {
       setPlayers(players);
     });
 
+    socket.on("allReady", (gameId) => {
+      console.log("All players are ready");
+      setAllReady(true);
+    });
+
+    socket.on("allNotReady", (gameId) => {
+      console.log("notAllReady received");
+      setAllReady(false);
+    });
+
     return () => {
       socket.off("gameCreated");
       socket.off("playerJoined");
       socket.off("playerLeft");
       socket.off("playerReady");
       socket.off("startGame");
+      socket.off("allReady");
+      socket.off("allNotReady");
     };
   }, [navigate, location.state, playerName]);
 
@@ -76,11 +90,17 @@ export const CustomLobby = () => {
     socket.emit("playerReady", { gameId });
   };
 
+  const handleStartGame = () => {
+    console.log("Starting the game");
+    navigate(`/game/${gameId}`);
+  };
+
   return (
     <>
       <ToastContainer />
 
       <div className="min-h-screen bg-gradient-to-r from-purple-500 to-blue-500 flex flex-col items-center justify-center">
+        {allReady ? <Countdown onComplete={handleStartGame} /> : null}
         <div className="bg-white shadow-md rounded-lg p-7 max-w-lg w-full">
           <h1 className="text-2xl font-bold mb-4">Custom Lobby</h1>
 

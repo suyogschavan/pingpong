@@ -3,8 +3,9 @@ import { ToastContainer, toast } from "react-toastify";
 import { useNavigate, useLocation } from "react-router-dom";
 import io from "socket.io-client";
 import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
-import { Collapse, List } from "@mui/material";
+import { Button, Collapse, List } from "@mui/material";
 import { TransitionGroup } from "react-transition-group";
+import Countdown from "../components/Countdown";
 
 const socket = io("http://localhost:4000");
 
@@ -19,7 +20,7 @@ function Lobby() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const playerName = location.state?.playerName || "Player"; // Default name if not passed
+  const playerName = location.state?.playerName;
   const isNewGame = location.state?.newGame;
   const isRandom = location.state?.playRandom;
 
@@ -51,11 +52,6 @@ function Lobby() {
       setLoading(false);
     };
 
-    const handleStartGame = (gameId) => {
-      console.log("Start game event received");
-      navigate(`/game/${gameId}`);
-    };
-
     const allReady = (gameId) => {
       console.log("All players are ready");
       setStartTimer(true);
@@ -64,6 +60,11 @@ function Lobby() {
     const handleAllnotready = (gameId) => {
       console.log("All players are not ready");
       setStartTimer(false);
+    };
+
+    const handlePlayerLeft = (players) => {
+      console.log("PlayerLeft event received");
+      setPlayers(players);
     };
 
     const handleError = (message) => {
@@ -77,6 +78,7 @@ function Lobby() {
     socket.on("error", handleError);
     socket.on("allReady", allReady);
     socket.on("allNotReady", handleAllnotready);
+    socket.on("playerLeft", handlePlayerLeft);
 
     return () => {
       socket.off("gameCreated", handleGameCreated);
@@ -85,6 +87,7 @@ function Lobby() {
       socket.off("error", handleError);
       socket.off("allReady", allReady);
       socket.off("allNotReady", handleAllnotready);
+      socket.off("playerLeft", handlePlayerLeft);
     };
   }, [navigate, location.state, playerName, isNewGame, isRandom]);
 
@@ -110,14 +113,21 @@ function Lobby() {
     socket.emit("startGame", gameId);
   };
 
+  function handleStartGame() {
+    console.log("Start game event received");
+    navigate(`/game/${gameId}`);
+  }
+
   return (
     <>
       <ToastContainer />
       <div className="min-h-screen bg-gradient-to-r from-purple-500 to-blue-500 flex flex-col items-center justify-center">
+        {startTimer ? <Countdown onComplete={handleStartGame} /> : null}
         <div className="bg-white shadow-md rounded-lg p-7 max-w-lg w-full">
           <h1 className="text-2xl font-bold mb-4">
             {players.length === 0 ? "Waiting for players" : "Players"}
           </h1>
+          {/* <Countdown onComplete={handleStartGame} /> */}
           {players.length === 0 ? (
             <img
               id="loader"
@@ -170,6 +180,7 @@ function Lobby() {
             </button>
           )}
         </div>
+        {/* {startTimer ? <Countdown onComplete={handleStartGame} /> : ""} */}
       </div>
     </>
   );
