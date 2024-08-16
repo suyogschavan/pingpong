@@ -3,6 +3,8 @@ import { ToastContainer, toast } from "react-toastify";
 import { useNavigate, useLocation } from "react-router-dom";
 import io from "socket.io-client";
 import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
+import { Collapse, List } from "@mui/material";
+import { TransitionGroup } from "react-transition-group";
 
 const socket = io("http://localhost:4000");
 
@@ -10,12 +12,16 @@ function Lobby() {
   const [gameId, setGameId] = useState("");
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [showCountdown, setShowCountDown] = useState(false);
+  const [startTimer, setStartTimer] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
 
-  const playerName = location.state.playerName || "Player"; // Default name if not passed
-  const isNewGame = location.state.newGame;
-  const isRandom = location.state.playRandom;
+  const playerName = location.state?.playerName || "Player"; // Default name if not passed
+  const isNewGame = location.state?.newGame;
+  const isRandom = location.state?.playRandom;
 
   useEffect(() => {
     if (isNewGame) {
@@ -26,99 +32,144 @@ function Lobby() {
         console.log("Creating new game for", playerName);
         socket.emit("createGame", playerName);
       }
-    } else if (location.state.gameId) {
-      console.log("Joining existing game", location.state.gameId);
-      setGameId(location.state.gameId);
+    } else {
+      console.log("Joining game with ID", location.state.gameId);
       socket.emit("joinGame", { gameId: location.state.gameId, playerName });
     }
 
-    socket.on("gameCreated", ({ gameId, players }) => {
+    const handleGameCreated = ({ gameId, players }) => {
       console.log("Game created or joined successfully with ID", gameId);
       setGameId(gameId);
       setPlayers(players);
       setLoading(false);
-    });
+      if (players.length === 0) setShowCountDown(true);
+    };
 
-    socket.on("playerJoined", (game) => {
+    const handlePlayerJoined = (game) => {
       console.log("Player joined event received", game);
       setPlayers(game.players);
       setLoading(false);
-    });
+    };
 
-    socket.on("startGame", (gameId) => {
+    const handleStartGame = (gameId) => {
       console.log("Start game event received");
       navigate(`/game/${gameId}`);
-    });
+    };
 
-    socket.on("error", (message) => {
+    const allReady = (gameId) => {
+      console.log("All players are ready");
+      setStartTimer(true);
+    };
+
+    const handleAllnotready = (gameId) => {
+      console.log("All players are not ready");
+      setStartTimer(false);
+    };
+
+    const handleError = (message) => {
       toast.error(message);
       setLoading(false);
-    });
+    };
+
+    socket.on("gameCreated", handleGameCreated);
+    socket.on("playerJoined", handlePlayerJoined);
+    socket.on("startGame", handleStartGame);
+    socket.on("error", handleError);
+    socket.on("allReady", allReady);
+    socket.on("allNotReady", handleAllnotready);
 
     return () => {
-      socket.off("gameCreated");
-      socket.off("playerJoined");
-      socket.off("startGame");
+      socket.off("gameCreated", handleGameCreated);
+      socket.off("playerJoined", handlePlayerJoined);
+      socket.off("startGame", handleStartGame);
+      socket.off("error", handleError);
+      socket.off("allReady", allReady);
+      socket.off("allNotReady", handleAllnotready);
     };
   }, [navigate, location.state, playerName, isNewGame, isRandom]);
 
-  const handleCreateGame = () => {
-    console.log("Emitting createGame with playerName:", playerName);
-    setLoading(true);
-    socket.emit("createGame", playerName);
-  };
+  useEffect(() => {
+    const handlePlayerReady = (players) => {
+      setPlayers(players);
+    };
 
-  const handleJoinGame = (e) => {
-    e.preventDefault();
-    console.log(
-      "Emitting joinGame with gameId:",
-      gameId,
-      "and playerName:",
-      playerName
-    );
-    setLoading(true);
-    socket.emit("joinGame", { gameId, playerName });
-  };
+    socket.on("playerReady", handlePlayerReady);
+
+    return () => {
+      socket.off("playerReady", handlePlayerReady);
+    };
+  }, [players]);
 
   const handleReady = () => {
-    console.log("Emitting playerReady with gameId:", gameId);
-    socket.emit("playerReady", { gameId, playerName });
+    setReady((prevReady) => !prevReady);
+    socket.emit("playerReady", { gameId, playerName, ready: !ready });
+  };
+
+  const handleCountdownComplete = () => {
+    setShowCountDown(false);
+    socket.emit("startGame", gameId);
   };
 
   return (
     <>
       <ToastContainer />
-      <div style={{ padding: "20px" }}>
-        <h1>Lobby</h1>
-        <button onClick={handleCreateGame} disabled={loading || gameId}>
-          {loading ? "Creating Game..." : "Create Game"}
-        </button>
-        <form onSubmit={handleJoinGame} style={{ marginTop: "20px" }}>
-          <input
-            type="text"
-            value={gameId}
-            onChange={(e) => setGameId(e.target.value)}
-            placeholder="Enter Game ID"
-            disabled={loading}
-            style={{ padding: "10px", marginRight: "10px" }}
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? "Joining Game..." : "Join Game"}
-          </button>
-        </form>
-        {gameId && <p>Game ID: {gameId}</p>}
-        <ul style={{ marginTop: "20px" }}> 
-        {Array.isArray(players) && players.map((player) => (
-            <li key={player.id}>
-              {player.name} {player.ready ? "(Ready)" : ""}
-            </li>
-          ))}
-        </ul>
-        {players.length > 0 && (
-          <button onClick={handleReady} disabled={loading}>
-            Ready
-          </button>
-        )}
+      <div className="min-h-screen bg-gradient-to-r from-purple-500 to-blue-500 flex flex-col items-center justify-center">
+        <div className="bg-white shadow-md rounded-lg p-7 max-w-lg w-full">
+          <h1 className="text-2xl font-bold mb-4">
+            {players.length === 0 ? "Waiting for players" : "Players"}
+          </h1>
+          {players.length === 0 ? (
+            <img
+              id="loader"
+              className="flex h-80"
+              src="pingpong.gif"
+              alt="anything"
+            />
+          ) : null}
+          <div className="mb-4">
+            <List className="mt-2" sx={{ mt: 1 }}>
+              <TransitionGroup className="md-2">
+                {players.map((player, index) => (
+                  <Collapse
+                    key={index}
+                    className="text-gray-700 font-normal pb-2 flex justify-between items-center"
+                  >
+                    <div className="flex justify-between w-full">
+                      <span>
+                        {player.name === playerName
+                          ? `${player.name} (you)`
+                          : player.name}
+                      </span>
+                      <span
+                        className={`ml-2 px-2 py-1 rounded-lg text-white ${
+                          player.ready ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      >
+                        {player.ready ? "Ready" : "Not Ready"}
+                      </span>
+                    </div>
+                  </Collapse>
+                ))}
+              </TransitionGroup>
+            </List>
+          </div>
+          <h3>
+            {startTimer ? "" : "Game will start once all players are ready"}
+          </h3>
+          {players.length > 0 && (
+            <button
+              onClick={handleReady}
+              className={`w-full px-4 py-2 rounded-lg text-white font-semibold ${
+                ready
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-red-500 hover:bg-red-600"
+              } transition duration-300`}
+              disabled={loading}
+            >
+              {ready ? "Unready" : "Ready"}
+            </button>
+          )}
+        </div>
       </div>
     </>
   );

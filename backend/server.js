@@ -104,11 +104,18 @@ socket.on("playerReady", ({ gameId }) => {
       io.to(gameId).emit("playerReady", game.players);
       if (game.players.every((p) => p.ready)) {
         console.log("All players ready, starting game:", gameId);
-        io.to(gameId).emit("startGame", gameId);
+        io.to(gameId).emit("allReady", gameId);
+        // io.to(gameId).emit("startGame", gameId);
+      }else{
+        io.to(gameId).emit("allNotReady", gameId);
       }
     }
   }
 });
+
+socket.on("startGame", ({gameId})=>{
+  io.to(gameId).emit("startGame", gameId);
+})
 
   
 
