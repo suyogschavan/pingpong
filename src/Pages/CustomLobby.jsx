@@ -104,7 +104,11 @@ export const CustomLobby = () => {
                     className="text-gray-700 font-normal pb-2 flex justify-between items-center"
                   >
                     <div className="flex justify-between w-full">
-                      <span>{player.name}</span>
+                      <span>
+                        {player.name == playerName
+                          ? player.name + " (you) "
+                          : player.name}
+                      </span>
                       <span
                         className={`ml-2 px-2 py-1 rounded-lg text-white ${
                           player.ready ? "bg-green-500" : "bg-red-500"
