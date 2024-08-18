@@ -78,22 +78,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // socket.on("playerReady", ({ gameId, playerName }) => {
-  //   const game = games[gameId];
-  //   if (game) {
-  //     const player = game.players.find((p) => p.id === socket.id);
-  //     if (player) {
-  //       player.ready = true;
-  //       console.log(playerName + "''Player ready:", socket.id);
-  //       if (game.players.every((p) => p.ready)) {
-  //         console.log("All players ready, starting game:", gameId);
-  //         io.to(gameId).emit("startGame", gameId);
-  //       }
-  //     }
-  //   }
-  // });
-
-// In your server code
 socket.on("playerReady", ({ gameId }) => {
   const game = games[gameId];
   if (game) {
